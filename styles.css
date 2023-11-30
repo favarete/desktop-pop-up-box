@@ -37,7 +37,7 @@ p {
     height: 150px;
 }
 
-.custom-button {
+#custom-button {
     transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
     background-color: transparent;
     border-radius: 4px;
@@ -59,6 +59,12 @@ p {
     white-space: nowrap;
 }
 
-.custom-button:hover {
+#custom-button:hover {
     background-color: rgba(255, 255, 255, 0.2);
+}
+
+.is-disabled {
+    cursor: no-drop;
+    pointer-events: none;
+    background-color: rgba(255, 100, 100, 0.3) !important;
 }

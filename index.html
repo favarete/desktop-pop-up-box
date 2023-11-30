@@ -1,33 +1,62 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-    <head>
-        <meta charset="UTF-8">
-        <title>Alerta do Marvin!</title>
-        <meta content="script-src 'self' 'unsafe-inline';" http-equiv="Content-Security-Policy"/>
-        <link href="styles.css" rel="stylesheet">
+<head>
+    <meta charset="UTF-8">
+    <title>Alerta do Marvin!</title>
+    <meta content="script-src 'self' 'unsafe-inline';" http-equiv="Content-Security-Policy"/>
+    <link href="styles.css" rel="stylesheet">
 
-        <script>
+    <script>
+        const getCounterText = (counterValue) => {
+            return `[${String(counterValue).padStart(2, '0')}]`
+        }
+
+        let localTimer = null
+        const checkWindow = () => {
             window.bridge.sendMessage((_, message) => {
-                const messageTime = message.substring(0, 5)
-                const messageText = message.substring(6)
-                document.getElementById('marvin-time').innerHTML = messageTime;
-                document.getElementById('marvin-message').innerHTML = messageText;
+                document.getElementById('marvin-time').innerHTML = message.timeText;
+                document.getElementById('marvin-message').innerHTML = message.notificationText;
             });
-        </script>
-    </head>
-    <body>
-        <div class="page">
-            <h1>Hora de Atenção</h1>
-            <div>
-                <img class="character-image" height="300" src="marvin.png" width="300"/>
-            </div>
-            <div>
-                <h2 id="marvin-time"></h2>
-                <p id="marvin-message"></p>
-            </div>
-            <div id="close-btn">
-                <a class="custom-button" href="#generate-bookmarklet">Visualizado</a>
-            </div>
-        </div>
-    </body>
+            const TIMER_DURATION_SEG = 30
+            const actionButton = document.getElementById('custom-button')
+
+            window.bridge.windowInView((_, message) => {
+                if(message) {
+                    let counterUI = TIMER_DURATION_SEG
+                    localTimer = setInterval(() => {
+                        actionButton.innerHTML = getCounterText(counterUI)
+                        counterUI = counterUI - 1
+                        if (counterUI < 0) {
+                            clearInterval(localTimer)
+                            actionButton.classList.remove('is-disabled')
+                            actionButton.innerHTML = 'Visualizado'
+                        }
+                    }, 1000);
+                }
+                else {
+                    actionButton.innerHTML = getCounterText(TIMER_DURATION_SEG)
+                    if(!actionButton.classList.contains('is-disabled')){
+                        clearInterval(localTimer)
+                        actionButton.classList.add('is-disabled')
+                    }
+                }
+            })
+        }
+    </script>
+</head>
+<body onresize="checkWindow()" onload="checkWindow()">
+<div class="page">
+    <h1>Hora de Atenção</h1>
+    <div>
+        <img class="character-image" height="300" src="marvin.png" width="300"/>
+    </div>
+    <div>
+        <h2 id="marvin-time"></h2>
+        <p id="marvin-message"></p>
+    </div>
+    <div id="action-button">
+        <a id="custom-button" class="is-disabled" href="#">##</a>
+    </div>
+</div>
+</body>
 </html>

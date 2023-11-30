@@ -1,6 +1,7 @@
 module.exports = {
   packagerConfig: {
     asar: true,
+    icon: './trayClock.png'
   },
   rebuildConfig: {},
   makers: [

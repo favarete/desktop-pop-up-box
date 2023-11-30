@@ -6,15 +6,17 @@ contextBridge.exposeInMainWorld(
     'bridge', {
         sendMessage: (message) => {
             ipcRenderer.on('sendMessage', message);
+        },
+        windowInView: (message) => {
+            ipcRenderer.on('windowInView', message);
         }
     }
 );
 
 window.addEventListener('DOMContentLoaded', () => {
-    // close app
-    function closeApp(e) {
+    const btnAction = (e) => {
         e.preventDefault()
-        ipcRenderer.send('close')
+        ipcRenderer.send('actionButton')
     }
-    document.getElementById('close-btn').addEventListener('click', closeApp);
+    document.getElementById('custom-button').addEventListener('click', btnAction);
 })
