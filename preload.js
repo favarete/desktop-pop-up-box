@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld(
         },
         windowInView: (message) => {
             ipcRenderer.on('windowInView', message);
+        },
+        configToRender: (message) => {
+            ipcRenderer.on('configToRender', message);
         }
     }
 );

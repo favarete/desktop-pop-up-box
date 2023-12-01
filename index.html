@@ -8,21 +8,29 @@
 
     <script>
         const getCounterText = (counterValue) => {
+            if(counterValue === 999){
+                return '&#8734;'
+            }
             return `[${String(counterValue).padStart(2, '0')}]`
         }
 
         let localTimer = null
+        let timerDuration = 999
         const checkWindow = () => {
             window.bridge.sendMessage((_, message) => {
-                document.getElementById('marvin-time').innerHTML = message.timeText;
-                document.getElementById('marvin-message').innerHTML = message.notificationText;
-            });
-            const TIMER_DURATION_SEG = 30
+                document.getElementById('marvin-time').innerHTML = message.timeText
+                document.getElementById('marvin-message').innerHTML = message.notificationText
+            })
+
+            window.bridge.configToRender((_, message) => {
+                timerDuration = message.timerDuration
+            })
+
             const actionButton = document.getElementById('custom-button')
 
             window.bridge.windowInView((_, message) => {
                 if(message) {
-                    let counterUI = TIMER_DURATION_SEG
+                    let counterUI = timerDuration
                     localTimer = setInterval(() => {
                         actionButton.innerHTML = getCounterText(counterUI)
                         counterUI = counterUI - 1
@@ -34,7 +42,7 @@
                     }, 1000);
                 }
                 else {
-                    actionButton.innerHTML = getCounterText(TIMER_DURATION_SEG)
+                    actionButton.innerHTML = getCounterText(timerDuration)
                     if(!actionButton.classList.contains('is-disabled')){
                         clearInterval(localTimer)
                         actionButton.classList.add('is-disabled')

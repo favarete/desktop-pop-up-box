@@ -1,37 +1,63 @@
 const {app, ipcMain, BrowserWindow, Tray, Menu} = require('electron')
-
-require('dotenv').config()
+const fs = require('fs')
 const path = require('node:path')
+const {dialog} = require('electron')
+const config = JSON.parse(fs.readFileSync(path.join(__dirname, './config.json'), 'utf8'))
 
-require('electron').powerSaveBlocker.start('prevent-app-suspension');
+require('electron').powerSaveBlocker.start('prevent-app-suspension')
+
+const apiURL = config['apiURL']
+const fullAccessToken = config['fullAccessToken']
+const timerDuration = config['timerDuration']
 
 const DEBUGGING = false
 // TODO: Can I avoid declaring it here?
 let mainWindow
 let NEXT_NOTIFICATION_ID
 
-function createWindow() {
-    mainWindow = new BrowserWindow({
-        frame: false,
-        show: false,
-        skipTaskbar: true,
-        alwaysOnTop: true,
-        width: 800,
-        height: 600,
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.js')
+function reSync(callback) {
+    (function loop() {
+        let now = new Date();
+        if (now.getHours() === 1 && now.getMinutes() === 0) {
+            callback();
         }
-    })
+        now = new Date()
+        let delay = 60000 - (now % 60000); // exact ms to next minute interval
+        setTimeout(loop, delay)
+    })()
+}
 
-    mainWindow.loadFile('index.html')
-        .then(() => {
-            mainWindow.webContents.send('windowInView', false)
-        });
+function createWindow() {
+    if (config) {
+        mainWindow = new BrowserWindow({
+            frame: false,
+            show: false,
+            skipTaskbar: true,
+            alwaysOnTop: true,
+            width: 800,
+            height: 600,
+            webPreferences: {
+                preload: path.join(__dirname, 'preload.js')
+            }
+        })
 
-    if(DEBUGGING){
-        mainWindow.webContents.openDevTools()
+        mainWindow.loadFile('index.html')
+            .then(() => {
+                mainWindow.webContents.send('windowInView', false)
+                mainWindow.webContents.send('configToRender', {timerDuration})
+            })
+
+        if (DEBUGGING) {
+            mainWindow.webContents.openDevTools()
+        }
+
+        reSync(setNextNotification)
+        void setNextNotification()
+    } else {
+        dialog.showErrorBox('Erro! =(',
+            'Não foi possível carregar o arquivo de configuração.\n' +
+            'Você criou o arquivo \'config.json\' junto ao .exe?')
     }
-    void setNextNotification()
 }
 
 function createContextMenu() {
@@ -78,11 +104,11 @@ async function postMessageAndWait() {
     if (DEBUGGING) {
         console.log("Will remove: ", taskId)
     }
-    await fetch(`${process.env.API_URL}/api/markDone`, {
+    await fetch(`${apiURL}/api/markDone`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Full-Access-Token': process.env.FULL_ACCESS_TOKEN
+            'X-Full-Access-Token': fullAccessToken
         },
         body: JSON.stringify({
             itemId: taskId
@@ -94,11 +120,11 @@ async function postMessageAndWait() {
 }
 
 async function getListOfReminders() {
-    return (await fetch(`${process.env.API_URL}/api/reminders`, {
+    return (await fetch(`${apiURL}/api/reminders`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'X-Full-Access-Token': process.env.FULL_ACCESS_TOKEN
+            'X-Full-Access-Token': fullAccessToken
         }
     })).json();
 }
@@ -123,6 +149,7 @@ async function setNextNotification() {
         RegExp(`${timeText}`, 'g'), '').trim();
 
     mainWindow.webContents.send('sendMessage', {timeText, notificationText});
+    mainWindow.webContents.send('configToRender', {timerDuration})
 
     const timeNow = new Date().getTime()
     const timeAlert = fullDatetime.getTime()
